@@ -1,0 +1,8 @@
+trimesh>=3.15.0
+numpy>=1.21.0
+Pillow>=9.0.0
+scipy>=1.7.0
+Flask>=2.3.0
+# boto3>=1.20.0  # NOT NEEDED: boto3 is available in Lambda runtime
+# Keep boto3 in requirements for local development, but don't package it for Lambda
+
