@@ -1,5 +1,5 @@
 """
-AWS Lambda Handler for Mesh Generation
+EC2 mesh generation service entry point
 Generates lamp meshes with progress updates to S3
 """
 
@@ -10,16 +10,16 @@ from pathlib import Path
 
 # Add python/ directory to Python path for dependencies
 # This allows imports like 'import trimesh' to find packages in python/
-# Lambda handler is at the root of the deployment package
+# Service handler is at the root of the deployment package
 
-# Use Lambda's task root if available, otherwise use handler's directory
-_lambda_task_root = os.environ.get('LAMBDA_TASK_ROOT')
-if _lambda_task_root:
-    _lambda_dir = Path(_lambda_task_root)
+# Use the configured task root for EC2 if available, otherwise use the module directory
+_ec2_task_root = os.environ.get('EC2_TASK_ROOT')
+if _ec2_task_root:
+    _service_dir = Path(_ec2_task_root)
 else:
-    _lambda_dir = Path(__file__).parent.resolve()
+    _service_dir = Path(__file__).parent.resolve()
 
-_python_dir = _lambda_dir / 'python'
+_python_dir = _service_dir / 'python'
 
 # Add python directory to path if it exists and isn't already there
 if _python_dir.exists() and _python_dir.is_dir():
@@ -28,9 +28,9 @@ if _python_dir.exists() and _python_dir.is_dir():
     if python_path not in sys.path:
         sys.path.insert(0, python_path)
     # Also ensure the parent directory is in path for absolute imports
-    lambda_path = str(_lambda_dir.resolve())
-    if lambda_path not in sys.path:
-        sys.path.insert(0, lambda_path)
+    service_path = str(_service_dir.resolve())
+    if service_path not in sys.path:
+        sys.path.insert(0, service_path)
 
 import boto3
 import tempfile
@@ -193,9 +193,9 @@ def upload_to_s3(file_path: str, s3_key: str):
         raise ValueError(f"Failed to upload to S3: {e}")
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def ec2_handler(event: Dict[str, Any]) -> Dict[str, Any]:
     """
-    AWS Lambda handler for mesh generation
+    EC2 service entry point for mesh generation
     
     Expected event structure:
     {
@@ -248,7 +248,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # 1. It requires s3:ListBucket permission which may not be granted
         # 2. The actual S3 operations (get_object, put_object, upload_file) will fail
         #    with proper error messages if there are real permission issues
-        # 3. This avoids unnecessary 403 errors when the Lambda has object-level permissions
+        # 3. This avoids unnecessary 403 errors when the service has object-level permissions
         
         update_progress(job_id, 'running', 0.0, 'Initializing mesh generation...', 'Initialization')
         
@@ -546,7 +546,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 job_id, 
                 'completed', 
                 100.0, 
-                f'Mesh generation completed! ({len(base_mesh.vertices):,} vertices, {len(base_mesh.faces):,} faces)',
+                'Mesh generation completed!',
                 'Complete',
                 vertices=len(base_mesh.vertices),
                 faces=len(base_mesh.faces),
@@ -580,7 +580,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     except Exception as e:
         error_message = str(e)
-        logger.error(f"Error in Lambda handler: {error_message}", exc_info=True)
+        logger.error(f"Error in EC2 handler: {error_message}", exc_info=True)
         
         # Update progress with error
         job_id = event.get('job_id', 'unknown')

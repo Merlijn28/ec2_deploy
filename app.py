@@ -2,7 +2,7 @@
 Minimal Flask wrapper around the existing mesh generation logic.
 
 Provides a single POST endpoint for generating a mesh using the same
-mechanics as the Lambda handler.
+mechanics as the EC2 service handler.
 """
 
 import json
@@ -11,7 +11,7 @@ import logging
 
 from flask import Flask, request, jsonify
 
-from lambda_handler import lambda_handler
+from ec2_service import ec2_handler
 
 app = Flask(__name__)
 logger = logging.getLogger("mesh_flask")
@@ -20,12 +20,12 @@ logger = logging.getLogger("mesh_flask")
 @app.route("/health", methods=["GET"])
 def health_check():
     """Simple health check endpoint."""
-    return jsonify({"status": "ok", "bucket": os.getenv("S3_BUCKET_NAME")}), 200
+    return jsonify({"status": "ok", "bucket": os.getenv("heroku-lumo-storage")}), 200
 
 
 @app.route("/generate", methods=["POST"])
 def generate_mesh():
-    """Trigger the mesh generation workflow via the Lambda handler logic."""
+    """Trigger the mesh generation workflow via the EC2 service logic."""
     payload = request.get_json(silent=True)
     if not payload:
         return jsonify({"error": "JSON body required"}), 400
@@ -46,7 +46,7 @@ def generate_mesh():
     }
 
     logger.info("Received mesh generation request", extra={"job_id": job_id})
-    response = lambda_handler(event, None)
+    response = ec2_handler(event)
 
     try:
         body = json.loads(response.get("body", "{}"))
