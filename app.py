@@ -10,6 +10,7 @@ import os
 import logging
 
 from flask import Flask, request, jsonify
+import boto3
 
 from ec2_service import ec2_handler
 
@@ -19,8 +20,32 @@ logger = logging.getLogger("mesh_flask")
 
 @app.route("/health", methods=["GET"])
 def health_check():
-    """Simple health check endpoint."""
-    return jsonify({"status": "ok", "bucket": os.getenv("heroku-lumo-storage")}), 200
+    """Simple health check endpoint that verifies S3 connectivity."""
+    bucket_name = os.getenv("S3_BUCKET_NAME", "heroku-lumo-storage")
+    s3_connected = False
+    s3_error = None
+    
+    try:
+        # Test S3 connectivity by getting bucket location (lightweight operation)
+        s3_client = boto3.client('s3')
+        s3_client.get_bucket_location(Bucket=bucket_name)
+        s3_connected = True
+    except Exception as e:
+        s3_error = str(e)
+        logger.warning(f"S3 connectivity check failed: {e}")
+    
+    status = "ok" if s3_connected else "degraded"
+    response = {
+        "status": status,
+        "bucket": bucket_name,
+        "s3_connected": s3_connected
+    }
+    
+    if s3_error:
+        response["s3_error"] = s3_error
+    
+    status_code = 200 if s3_connected else 503
+    return jsonify(response), status_code
 
 
 @app.route("/generate", methods=["POST"])
