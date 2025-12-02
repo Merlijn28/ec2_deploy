@@ -15,8 +15,6 @@ import gc
 from meshgen.accel import (
     bilinear_interpolation,
     uv_computation,
-    is_gpu_available,
-    get_device,
     identify_outer_vertices
 )
 
@@ -90,19 +88,14 @@ def calculate_lamp_resolution(
     
     # Calculate surface dimensions
     outer_tube_height_mm = outer_tube_top_z - outer_tube_bottom_z
-    avg_radius_mm = (top_radius_mm + bottom_radius_mm) / 2.0
-    avg_circumference_mm = 2 * np.pi * avg_radius_mm
-    
-    # Calculate segments based on circumference and mm_per_pixel
-    max_radius_mm = max(top_radius_mm, bottom_radius_mm)
-    circumference_mm = 2 * np.pi * max_radius_mm
+    circumference_mm = 2 * np.pi * radius_mm
     segments = max(3, int(np.ceil(circumference_mm / mm_per_pixel)))
     
     # Calculate vertical grid cells based on mm_per_pixel
     grid_cells = max(1, int(np.ceil(outer_tube_height_mm / mm_per_pixel)))
     
     # Ensure square cells by adjusting segments if needed
-    ideal_segments = max(3, int(np.ceil((avg_circumference_mm * grid_cells) / max(outer_tube_height_mm, 0.1))))
+    ideal_segments = max(3, int(np.ceil((circumference_mm * grid_cells) / max(outer_tube_height_mm, 0.1))))
     segments = max(segments, ideal_segments)
     
     # Target image resolution: match the grid resolution
@@ -227,13 +220,8 @@ def apply_displacement(
     z_max = np.max(z)
     surface_height = z_max - z_min
     
-    # Calculate average radius for circumference
-    radius = np.sqrt(side_vertices[:, 0]**2 + side_vertices[:, 1]**2).astype(np.float32)
-    avg_radius = np.mean(radius)
-    surface_circumference = 2 * np.pi * avg_radius
-    
     # Clean up intermediate if not needed later
-    del z, radius
+    del z
     
     # Map image to surface while preserving original orientation and aspect ratio
     # CRITICAL: Image dimensions map as follows:

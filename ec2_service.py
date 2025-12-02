@@ -283,11 +283,6 @@ def ec2_handler(event: Dict[str, Any]) -> Dict[str, Any]:
                 brim_overhang_angle=lamp_params.get('brim_overhang_angle', 45.0),
                 top_brim=lamp_params.get('top_brim', True),
                 bottom_brim=lamp_params.get('bottom_brim', True),
-                num_spokes=lamp_params.get('num_spokes', 0),
-                spoke_height=lamp_params.get('spoke_height'),
-                spoke_thickness=lamp_params.get('spoke_thickness'),
-                hub_diameter=lamp_params.get('hub_diameter'),
-                hub_height=lamp_params.get('hub_height'),
                 progress_callback=mesh_progress_callback
             )
             
@@ -509,7 +504,6 @@ def ec2_handler(event: Dict[str, Any]) -> Dict[str, Any]:
             stored_parameters = None
             if lamp_params:
                 # Store lamp parameters plus displacement parameters if applicable
-                # Prefer diameter, but also store radius for backward compatibility
                 stored_parameters = {
                     'height': lamp_params.get('height'),
                     'diameter': diameter_param,
@@ -520,11 +514,6 @@ def ec2_handler(event: Dict[str, Any]) -> Dict[str, Any]:
                     'brim_overhang_angle': lamp_params.get('brim_overhang_angle'),
                     'top_brim': lamp_params.get('top_brim'),
                     'bottom_brim': lamp_params.get('bottom_brim'),
-                    'num_spokes': lamp_params.get('num_spokes'),
-                    'spoke_height': lamp_params.get('spoke_height'),
-                    'spoke_thickness': lamp_params.get('spoke_thickness'),
-                    'hub_diameter': lamp_params.get('hub_diameter'),
-                    'hub_height': lamp_params.get('hub_height'),
                     'min_clearance_mm': input_params.get('min_clearance_mm', 0.6),
                     'intensity': input_params.get('intensity'),
                     'smoothing': input_params.get('smoothing', 1.0),
